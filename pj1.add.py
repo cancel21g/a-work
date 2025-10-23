@@ -80,19 +80,23 @@ with st.expander("🔍 데이터 구조 확인"):
     st.dataframe(df.head())
 
 # 컬럼명 자동 매칭
-region_col = find_column(df, ['지역명', '시도명', '행정구역', '지역', '시도', '광역시도'])
-industry_col = find_column(df, ['업종명', '업종', '업태명', '서비스업종명'])
-stores_col = find_column(df, ['점포수', '매장수', '사업체수', '개소수', '당월'])
+region_col = find_column(df, ['시도', '시도명', '지역명', '행정구역', '지역', '광역시도'])
+industry_col = find_column(df, ['업종', '업종명', '업태명', '서비스업종명'])
+stores_col = find_column(df, ['사업자수(당월)', '점포수', '매장수', '사업체수', '개소수', '당월'])
 growth_col = find_column(df, ['증감율', '증감률', '성장률', '성장율', '전년동월대비'])
+
+# 추가 컬럼 (옵션)
+district_col = find_column(df, ['시군구', '구', '시군', '행정구역명'])
+prev_stores_col = find_column(df, ['사업자수(전월)', '전월', '이전월'])
 
 # 컬럼 확인
 missing_cols = []
 if region_col is None:
-    missing_cols.append("지역명")
+    missing_cols.append("시도")
 if industry_col is None:
-    missing_cols.append("업종명")
+    missing_cols.append("업종")
 if stores_col is None:
-    missing_cols.append("점포수")
+    missing_cols.append("사업자수(당월)")
 if growth_col is None:
     missing_cols.append("증감율")
 
@@ -262,7 +266,7 @@ with tab1:
             st.plotly_chart(fig1, use_container_width=True)
             
             # 점포수 vs 증감율 산점도
-            st.markdown("#### 📊 점포수 vs 증감율")
+            st.markdown("#### 📊 사업자수 vs 증감율")
             fig2 = px.scatter(
                 high_growth_sorted,
                 x=stores_col,
@@ -271,14 +275,14 @@ with tab1:
                 color=growth_col,
                 hover_name=industry_col,
                 color_continuous_scale='Viridis',
-                labels={stores_col: '점포수', growth_col: '증감율(%)'}
+                labels={stores_col: '사업자수', growth_col: '증감율(%)'}
             )
             fig2.update_layout(height=300)
             st.plotly_chart(fig2, use_container_width=True)
 
 # 탭 2: 인기 업종 순위
 with tab2:
-    st.subheader(f"🏆 점포수 기준 인기 업종 Top {top_n}")
+    st.subheader(f"🏆 사업자수 기준 인기 업종 Top {top_n}")
     
     top_stores_df = filtered_df.sort_values(by=stores_col, ascending=False).head(top_n)
     
@@ -290,10 +294,10 @@ with tab2:
         # 순위 테이블
         display_df2 = top_stores_df[[industry_col, stores_col, growth_col]].copy()
         display_df2.index = range(1, len(display_df2) + 1)
-        display_df2.columns = ['업종명', '점포수', '증감율(%)']
+        display_df2.columns = ['업종명', '사업자수', '증감율(%)']
         
         styled_df2 = display_df2.style.format({
-            '점포수': '{:,.0f}',
+            '사업자수': '{:,.0f}',
             '증감율(%)': '{:.2f}'
         })
         
@@ -303,12 +307,12 @@ with tab2:
         st.markdown("##### 📊 인기 업종 통계")
         stat_col1, stat_col2 = st.columns(2)
         with stat_col1:
-            st.metric("평균 점포수", f"{top_stores_df[stores_col].mean():,.0f}개")
+            st.metric("평균 사업자수", f"{top_stores_df[stores_col].mean():,.0f}개")
         with stat_col2:
-            st.metric("총 점포수", f"{top_stores_df[stores_col].sum():,.0f}개")
+            st.metric("총 사업자수", f"{top_stores_df[stores_col].sum():,.0f}개")
     
     with col2:
-        st.markdown("#### 📊 점포수 시각화")
+        st.markdown("#### 📊 사업자수 시각화")
         
         # 가로 막대 차트
         fig3 = go.Figure()
@@ -324,12 +328,12 @@ with tab2:
             ),
             text=top_stores_df[stores_col].apply(lambda x: f'{x:,.0f}'),
             textposition='outside',
-            hovertemplate='<b>%{y}</b><br>점포수: %{x:,.0f}개<extra></extra>'
+            hovertemplate='<b>%{y}</b><br>사업자수: %{x:,.0f}개<extra></extra>'
         ))
         
         fig3.update_layout(
-            title='점포수 Top 10',
-            xaxis_title='점포수 (개)',
+            title='사업자수 Top 10',
+            xaxis_title='사업자수 (개)',
             yaxis_title='',
             height=400,
             yaxis={'categoryorder': 'total ascending'},
@@ -340,7 +344,7 @@ with tab2:
         st.plotly_chart(fig3, use_container_width=True)
         
         # 파이 차트
-        st.markdown("#### 📊 점포수 비율")
+        st.markdown("#### 📊 사업자수 비율")
         fig4 = px.pie(
             top_stores_df,
             values=stores_col,
@@ -354,7 +358,7 @@ with tab2:
 
 # 탭 3: 종합 비교 분석
 with tab3:
-    st.subheader("📊 증감율 vs 점포수 종합 분석")
+    st.subheader("📊 증감율 vs 사업자수 종합 분석")
     
     # 버블 차트
     fig5 = px.scatter(
@@ -365,7 +369,7 @@ with tab3:
         color=growth_col,
         hover_name=industry_col,
         color_continuous_scale='RdYlGn',
-        labels={stores_col: '점포수', growth_col: '증감율(%)'},
+        labels={stores_col: '사업자수', growth_col: '증감율(%)'},
         title=f'{region_title} 지역 업종 분포 (상위 50개)'
     )
     
@@ -392,25 +396,25 @@ with tab3:
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.metric("🌟 스타 업종", f"{len(q1)}개", help="높은 점포수 + 높은 성장률")
+        st.metric("🌟 스타 업종", f"{len(q1)}개", help="높은 사업자수 + 높은 성장률")
         with st.expander("상위 5개 보기"):
             if not q1.empty:
                 st.write(q1.nlargest(5, growth_col)[industry_col].tolist())
     
     with col2:
-        st.metric("🚀 성장 업종", f"{len(q2)}개", help="낮은 점포수 + 높은 성장률")
+        st.metric("🚀 성장 업종", f"{len(q2)}개", help="낮은 사업자수 + 높은 성장률")
         with st.expander("상위 5개 보기"):
             if not q2.empty:
                 st.write(q2.nlargest(5, growth_col)[industry_col].tolist())
     
     with col3:
-        st.metric("⚠️ 주의 업종", f"{len(q3)}개", help="낮은 점포수 + 낮은 성장률")
+        st.metric("⚠️ 주의 업종", f"{len(q3)}개", help="낮은 사업자수 + 낮은 성장률")
         with st.expander("상위 5개 보기"):
             if not q3.empty:
                 st.write(q3.head(5)[industry_col].tolist())
     
     with col4:
-        st.metric("🏰 안정 업종", f"{len(q4)}개", help="높은 점포수 + 낮은 성장률")
+        st.metric("🏰 안정 업종", f"{len(q4)}개", help="높은 사업자수 + 낮은 성장률")
         with st.expander("상위 5개 보기"):
             if not q4.empty:
                 st.write(q4.nlargest(5, stores_col)[industry_col].tolist())
@@ -424,14 +428,14 @@ with tab4:
     with col1:
         filter_min_growth = st.number_input("최소 증감율 (%)", value=-100.0, step=10.0)
     with col2:
-        filter_min_stores = st.number_input("최소 점포수", value=0, step=100)
+        filter_min_stores = st.number_input("최소 사업자수", value=0, step=100)
     with col3:
-        sort_option = st.selectbox("정렬 기준", ["점포수 높은순", "점포수 낮은순", "증감율 높은순", "증감율 낮은순"])
+        sort_option = st.selectbox("정렬 기준", ["사업자수 높은순", "사업자수 낮은순", "증감율 높은순", "증감율 낮은순"])
     
     # 정렬 적용
     sort_mapping = {
-        "점포수 높은순": (stores_col, False),
-        "점포수 낮은순": (stores_col, True),
+        "사업자수 높은순": (stores_col, False),
+        "사업자수 낮은순": (stores_col, True),
         "증감율 높은순": (growth_col, False),
         "증감율 낮은순": (growth_col, True)
     }
