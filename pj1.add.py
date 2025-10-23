@@ -14,6 +14,14 @@ st.set_page_config(
 st.title("🏪 지역별 인기업종 현황 분석")
 st.markdown("### 2025년 04월 100대 생활업종 데이터 기반")
 
+# 컬럼명 찾기 함수
+def find_column(df, possible_names):
+    """가능한 컬럼명 리스트에서 실제 존재하는 컬럼 찾기"""
+    for name in possible_names:
+        if name in df.columns:
+            return name
+    return None
+
 # 사이드바
 st.sidebar.header("⚙️ 분석 설정")
 
@@ -99,14 +107,6 @@ df[growth_col] = pd.to_numeric(df[growth_col], errors='coerce')
 
 # NaN 제거
 df = df.dropna(subset=[stores_col, growth_col])
-
-# 컬럼명 찾기 함수
-def find_column(df, possible_names):
-    """가능한 컬럼명 리스트에서 실제 존재하는 컬럼 찾기"""
-    for name in possible_names:
-        if name in df.columns:
-            return name
-    return None
 
 # 지역 선택
 regions = ['전체'] + sorted(df[region_col].unique().tolist())
