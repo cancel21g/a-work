@@ -14,29 +14,45 @@ st.set_page_config(
 st.title("🏪 지역별 인기업종 현황 분석")
 st.markdown("### 2025년 04월 100대 생활업종 데이터 기반")
 
+# 사이드바
+st.sidebar.header("⚙️ 분석 설정")
+
+# 파일 업로드
+uploaded_file = st.sidebar.file_uploader("📁 엑셀 파일 업로드", type=['xlsx', 'xls'])
+
 # 엑셀 파일 경로
 import os
-file_path = os.path.join('C:', 'Users', 'user', 'mcp-demo', 'data', '사업자 현황(2025년 04월 100대생활업종).xlsx')
+default_file_path = os.path.join('C:', 'Users', 'user', 'mcp-demo', 'data', '사업자 현황(2025년 04월 100대생활업종).xlsx')
 
-# 데이터 로드 함수 (캐싱)
+# 데이터 로드 함수 수정
 @st.cache_data
-def load_data():
+def load_data(file_source):
     try:
-        df = pd.read_excel(file_path)
+        if isinstance(file_source, str):
+            # 파일 경로인 경우
+            df = pd.read_excel(file_source)
+        else:
+            # 업로드된 파일인 경우
+            df = pd.read_excel(file_source)
         return df, None
     except Exception as e:
         return None, str(e)
 
-# 컬럼명 찾기 함수
-def find_column(df, possible_names):
-    """가능한 컬럼명 리스트에서 실제 존재하는 컬럼 찾기"""
-    for name in possible_names:
-        if name in df.columns:
-            return name
-    return None
+# 파일 소스 결정
+if uploaded_file is not None:
+    file_source = uploaded_file
+    st.sidebar.success("✅ 파일이 업로드되었습니다!")
+else:
+    if os.path.exists(default_file_path):
+        file_source = default_file_path
+        st.sidebar.info("ℹ️ 기본 파일을 사용합니다.")
+    else:
+        st.error("❌ 파일을 업로드하거나 기본 파일 경로를 확인해주세요.")
+        st.info("👆 왼쪽 사이드바에서 엑셀 파일을 업로드해주세요.")
+        st.stop()
 
 # 데이터 로드
-df, error = load_data()
+df, error = load_data(file_source)
 
 if error:
     st.error(f"❌ 데이터 로드 중 오류 발생: {error}")
@@ -84,8 +100,13 @@ df[growth_col] = pd.to_numeric(df[growth_col], errors='coerce')
 # NaN 제거
 df = df.dropna(subset=[stores_col, growth_col])
 
-# 사이드바
-st.sidebar.header("⚙️ 분석 설정")
+# 컬럼명 찾기 함수
+def find_column(df, possible_names):
+    """가능한 컬럼명 리스트에서 실제 존재하는 컬럼 찾기"""
+    for name in possible_names:
+        if name in df.columns:
+            return name
+    return None
 
 # 지역 선택
 regions = ['전체'] + sorted(df[region_col].unique().tolist())
